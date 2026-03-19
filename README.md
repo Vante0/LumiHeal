@@ -1,33 +1,43 @@
 # LumiHeal
 
-An ambient wellbeing lamp for people recovering from illness, injury, or emotional distress. Emotional recovery is hard to measure through clinical reports alone, and existing wellbeing trackers rely on screens and numerical dashboards that increase cognitive load and reduce engagement over time.
+Emotional recovery is hard to track. Clinical reports capture snapshots, not the day-to-day texture of how someone actually feels. Most wellbeing apps ask you to open a screen, pick a number, and interpret a chart — which adds friction at exactly the moments when you have the least energy for it.
 
-LumiHeal offers a different approach: a physical lamp that lets users reflect on their emotional energy each day without opening an app or interpreting complex data. Twist the lamp to bring an ArUco marker tag into view — each tag represents an energy level. Hold it still and it logs to a database and shifts the LED strip's colour to reflect your day. A Flask dashboard is available for reviewing trends over time, but the primary interaction is entirely screen-free.
+LumiHeal is a lamp. You twist it. That's it.
 
-**Key contributions:**
-- Ambient interaction instead of screen-based input
-- Encourages daily emotional reflection through a familiar physical gesture
-- Combines physical interaction with digital wellbeing data
-- Designed to support recovery and life transitions
+Each twist brings a different ArUco marker tag into view inside the translucent shell. Each tag maps to an energy level — from Drained to Vibrant. Hold the lamp still for a moment and it logs your input, then shifts the LED strip's colour to reflect your day. No screen needed. The lamp itself is the feedback.
+
+A Flask dashboard is available for reviewing trends over time, but it's a secondary layer — the core interaction is entirely physical.
 
 ---
 
 ## How it works
 
-The lamp has 5 ArUco marker tags (IDs 0–4) placed inside a 3D-printed translucent shell. A camera sits at the base, pointed up. When you twist the lamp, a tag rotates into view. The Pi detects it, confirms it over a 2-second sliding window, and logs it.
+Five ArUco marker tags (IDs 0–4) are fixed inside the 3D-printed lamp shell. A Pi Camera sits at the base, pointing up through the LED strip. When you twist the lamp, a tag rotates into the camera's field of view. The script detects it over a short sliding window to filter out accidental mid-rotation reads, then logs it.
 
-The LED strip wraps around the lamp body and is divided into 5 segments — one per day. Colours blend from blue (Drained) through teal, green, and lime to yellow (Vibrant), reflecting your average energy for each of the last 5 days with data.
+The LED strip is divided into 5 segments, one per day. The colour of each segment is the blended average of that day's inputs — shifting from blue at the low end to yellow at the high end.
 
 **Energy scale:**
+
 | Tag | Label | Colour |
 |-----|-------|--------|
-| 0 | Drained | `rgb(0, 100, 255)` |
-| 1 | Low | `rgb(0, 160, 200)` |
-| 2 | Okay | `rgb(0, 180, 120)` |
-| 3 | Good | `rgb(80, 200, 0)` |
-| 4 | Vibrant | `rgb(220, 220, 0)` |
+| 0 | Drained | `rgb(0, 100, 255)` — blue |
+| 1 | Low | `rgb(0, 160, 200)` — teal-blue |
+| 2 | Okay | `rgb(0, 180, 120)` — teal-green |
+| 3 | Good | `rgb(80, 200, 0)` — lime |
+| 4 | Vibrant | `rgb(220, 220, 0)` — yellow |
 
-Up to 3 inputs per day. Entries are timestamped at 09:00, 14:00, and 20:00 regardless of actual time, to represent morning, afternoon, and evening check-ins. Once a day hits 3 entries, the next input automatically rolls to the following day.
+The strip always shows the last 5 days that have data. Once a day has entries, it appears as the rightmost segment. Older days shift left over time.
+
+---
+
+## Demo notes
+
+A few things were simplified for the demo and aren't representative of how the full system would work in production:
+
+- **3 inputs per day** — capped at 3 to keep the demo short. In real use this would likely be higher or uncapped.
+- **Spread timestamps** — entries are logged at fixed times (09:00, 14:00, 20:00) regardless of when they actually happen. This makes the dashboard's daily view look realistic without needing to wait across a full day.
+- **Auto day rollover** — once a day hits 3 entries, the next input automatically goes to the following date. This lets you demo multiple days in a single session.
+- **Test databases** — `detections.db` and `daily_averages.db` in the repo contain populated test data so the dashboard has something to show on first load.
 
 ---
 
@@ -35,9 +45,10 @@ Up to 3 inputs per day. Entries are timestamped at 09:00, 14:00, and 20:00 regar
 
 - Raspberry Pi (tested on Pi 5)
 - Pi Camera Module
-- SK6812 RGBW NeoPixel LED strip (60 LEDs, wired to GPIO18)
-- 3D-printed lamp shell with ArUco marker tags attached inside
-- Separate 5V power supply for the LED strip (shared ground with Pi)
+- SK6812 RGBW NeoPixel LED strip — 60 LEDs, wired to GPIO18
+- 3D-printed translucent lamp shell
+- ArUco marker tags (printed, cut, and stuck inside the shell)
+- Separate 5V power supply for the LED strip with shared ground to the Pi
 
 ---
 
@@ -46,15 +57,15 @@ Up to 3 inputs per day. Entries are timestamped at 09:00, 14:00, and 20:00 regar
 ```
 lumiheal/
 ├── app.py                  # Flask dashboard backend
-├── lamp_test.py            # Main lamp detection + LED control script
+├── lamp_test.py            # Lamp detection and LED control
 ├── detections.db           # Individual detection logs
 ├── daily_averages.db       # Per-day averaged energy data
 ├── static/
-│   ├── charts.js           # All chart and UI logic
-│   ├── styles.css          # Dark/light theme styles
-│   └── Logo 1.png          # Logo
+│   ├── charts.js           # Chart and UI logic
+│   ├── styles.css          # Dark/light theme
+│   └── Logo 1.png
 └── templates/
-    └── index.html          # Dashboard HTML
+    └── index.html
 ```
 
 ---
@@ -62,23 +73,25 @@ lumiheal/
 ## Databases
 
 ### `detections.db` — table `detections`
+
 | Column | Type | Description |
 |--------|------|-------------|
 | `id` | INTEGER | Primary key |
 | `tag_id` | INTEGER | ArUco tag ID (0–4) |
-| `detected_at` | TEXT | Timestamp (spread across 09:00 / 14:00 / 20:00) |
+| `detected_at` | TEXT | Timestamp — spread to 09:00, 14:00, or 20:00 for demo |
 | `color` | TEXT | RGB string e.g. `rgb(0,180,120)` |
 | `notes` | TEXT | Optional user note |
 
 ### `daily_averages.db` — table `daily_averages`
+
 | Column | Type | Description |
 |--------|------|-------------|
 | `id` | INTEGER | Primary key |
 | `date` | TEXT | ISO date e.g. `2026-03-19` |
 | `avg_tag` | REAL | Average tag value for the day |
-| `num_readings` | INTEGER | Number of inputs that day |
+| `num_readings` | INTEGER | Number of inputs logged |
 | `color` | TEXT | Blended RGB string |
-| `r`, `g`, `b` | INTEGER | Individual RGB channels of blended colour |
+| `r`, `g`, `b` | INTEGER | Individual RGB channels |
 | `notes` | TEXT | Optional daily note |
 
 ---
@@ -89,29 +102,27 @@ lumiheal/
 |--------|----------|-------------|
 | GET | `/api/daily` | All daily averages |
 | POST | `/api/daily/<date>/notes` | Save a note for a day |
-| GET | `/api/detections` | All detections (includes id, tag_id, detected_at, color, notes) |
+| GET | `/api/detections` | All individual detections |
 | POST | `/api/detections/<id>/notes` | Save a note for a detection |
 | GET | `/api/health` | Health check |
 
-Flask runs on `host='0.0.0.0', port=5000`. The lamp camera stream runs on port `5001`.
+Dashboard runs on port `5000`. Camera stream (from `lamp_test.py`) runs on port `5001` to avoid conflicts when both are running together.
 
 ---
 
-## Dashboard features
+## Dashboard
 
 Built with Flask, SQLite, Chart.js, and vanilla JS/CSS. Font: Google Fonts Outfit.
 
-- **Energy trend chart** — scatter/dot plot with Daily / Weekly / Monthly toggle
-  - Daily: individual detections by time of day + daily average swatch
-  - Weekly: daily averages for Mon–Sun of selected week
-  - Monthly: daily averages for each day of selected month
-  - Y-axis labels: Drained · Low · Okay · Good · Vibrant
-- **Energy distribution** — doughnut chart with the same Daily / Weekly / Monthly toggle
-- **Energy calendar** — heatmap coloured by average energy, click to add or view notes
-- **Notes modal** — works for daily averages (from calendar and weekly/monthly dots) and individual detections (from daily dots)
-- **Hover tooltips** — show notes on trend chart dots
-- **Light/dark theme toggle** — saves preference to localStorage
-- **Logo in header**
+- **Energy trend chart** — dot/scatter plot, no lines or fill. Daily / Weekly / Monthly toggle.
+  - Daily: individual detections plotted by time of day, daily average shown below
+  - Weekly: one dot per day for the selected week
+  - Monthly: one dot per day for the selected month
+  - Y-axis: Drained · Low · Okay · Good · Vibrant
+- **Energy distribution** — doughnut chart with the same toggle
+- **Energy calendar** — heatmap by average energy per day, click to add or view notes
+- **Notes** — attachable to individual detections or daily averages, visible on hover in the chart
+- **Light/dark theme** — toggle in the navbar, saved to localStorage
 
 ---
 
@@ -119,8 +130,8 @@ Built with Flask, SQLite, Chart.js, and vanilla JS/CSS. Font: Google Fonts Outfi
 
 ### 1. Clone the repo
 ```bash
-git clone https://github.com/<your-username>/lumiheal.git
-cd lumiheal
+git clone https://github.com/Vante0/LumiHeal.git
+cd LumiHeal
 ```
 
 ### 2. Create a virtual environment
@@ -134,75 +145,75 @@ source .venv/bin/activate
 pip install flask opencv-contrib-python picamera2 adafruit-circuitpython-neopixel rpi_ws281x
 ```
 
-> `opencv-contrib-python` is required (not `opencv-python`) — it includes the ArUco module.
+`opencv-contrib-python` is needed specifically — the standard `opencv-python` doesn't include the ArUco module.
 
-### 4. Enable camera on the Pi
+### 4. Enable the camera
 ```bash
 sudo raspi-config
 ```
 Interface Options → Camera → Enable, then reboot.
 
 ### 5. Print ArUco tags
-Go to [chev.me/arucogen](https://chev.me/arucogen/) and generate tags:
+Go to [chev.me/arucogen](https://chev.me/arucogen/):
 - Dictionary: **4x4 (50)**
-- Marker IDs: **0, 1, 2, 3, 4** (one at a time)
-- Print as large as possible, cut with a white border, stick inside the lamp shell
+- Generate IDs **0, 1, 2, 3, 4** separately
+- Print large, cut with a white border, and fix inside the lamp shell
 
 ### 6. Wire the LED strip
-- LED strip 5V → separate 5V power supply positive
-- LED strip GND → power supply GND **and** Pi GND pin (shared ground is required)
-- LED strip Data → Pi GPIO18
+- Strip 5V → separate 5V supply (do not power from the Pi's 5V pin)
+- Strip GND → supply GND and Pi GND (shared ground is required for the data signal to work)
+- Strip Data → GPIO18
 
 ### 7. Run with sudo
-The NeoPixel library requires root to control GPIO:
+NeoPixel GPIO access requires root:
 ```bash
 sudo /path/to/.venv/bin/python3 lamp_test.py
 ```
 
+---
+
 ## Running
 
-### Dashboard
+**Dashboard:**
 ```bash
 python3 app.py
 ```
-Access at `http://<pi-ip>:5000`
+Open `http://<pi-ip>:5000`
 
-### Lamp detection + LEDs
+**Lamp:**
 ```bash
 sudo python3 lamp_test.py
 ```
 Camera stream at `http://<pi-ip>:5001`
 
-Run both simultaneously — they use separate ports and the same databases.
+Both can run at the same time — they share the same databases and use separate ports.
 
 ---
 
 ## Detection logic
 
-- Camera checks for ArUco tags every 200ms
-- Results are added to a 2-second sliding window
-- If a tag makes up 40% or more of checks in the window, it's confirmed and logged
-- The same tag cannot log twice in a row — the lamp must be rotated to a new tag first
-- This prevents fleeting mid-rotation tags from triggering a log
+The camera runs every 200ms rather than every frame, which reduces CPU load and gives each check enough time to be meaningful. Each result goes into a 2-second sliding window. If a single tag makes up 20% or more of that window, it gets logged.
+
+The 20% threshold is low by design. The camera sits very close to the tags inside the lamp, the image is often blurry, and the LED strip causes glare that further reduces contrast. Some tags would fail to confirm at all with a higher threshold. In practice it still takes roughly 1–2 seconds of holding the lamp still for a tag to confirm reliably. The same tag can't log twice in a row — you have to rotate to a different tag and back.
 
 ---
 
-## LED strip notes
+## LED strip quirks
 
-The SK6812 strip has a GRBW byte order (not standard RGB). The code uses a `grbw(r, g, b)` helper that swaps R and G and sets W=0 to suppress the white channel and keep colours accurate.
+The SK6812 strip uses GRBW byte order, not the standard RGB. There's a `grbw(r, g, b)` helper in `lamp_test.py` that swaps R and G and sets W to 0. Without this, colours come out wrong and the white channel washes everything out.
 
-Strip layout (60 LEDs total):
-- Days 1–4: 11 LEDs each
-- Day 5 (most recent active day): 16 LEDs
+Strip layout:
+- Segments 1–4: 11 LEDs each (4 days of history)
+- Segment 5: 16 LEDs (current active day, wider for visual emphasis)
 
 ---
 
 ## Tech stack
 
 - Python 3, Flask, SQLite3
-- OpenCV (ArUco detection, CLAHE contrast enhancement)
+- OpenCV with ArUco — detection and CLAHE contrast enhancement
 - Picamera2
 - Adafruit NeoPixel / CircuitPython
 - Chart.js
-- Vanilla JS / CSS
+- Vanilla JS and CSS
 - Google Fonts (Outfit)
