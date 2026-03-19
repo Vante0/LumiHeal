@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LumiHeal</title>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+
+<body class="dark-theme">
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="navbar-inner">
+            <div class="nav-brand">
+                <div class="nav-lamp-dot"></div>
+                <span>LumiHeal</span>
+            </div>
+            <div class="nav-links">
+                <button class="nav-link active" data-target="section-trend">📈 Energy Trend</button>
+                <button class="nav-link" data-target="section-calendar">📅 Energy Calendar</button>
+                <button class="nav-link" data-target="section-distribution">🥧 Energy Distribution</button>
+                <!-- Theme toggle -->
+                <div class="theme-toggle" id="themeToggle">
+                    <span class="theme-toggle-icon">🌙</span>
+                    <div class="theme-toggle-track">
+                        <div class="theme-toggle-thumb"></div>
+                    </div>
+                    <span class="theme-toggle-icon">☀️</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <div class="dashboard-wrapper">
+        <header class="header">
+            <div class="header-content">
+                <div class="logo-container">
+                    <img src="/static/Logo 1.png" alt="LumiHeal" style="height: 80px; width: auto;">
+                </div>
+                <div class="date-selector">
+                    <label for="week-picker">Select Week</label>
+                    <input type="date" id="week-picker" class="glass-input">
+                </div>
+            </div>
+            <!-- <p class="subtitle">IoT Mood Analytics & Tracking</p> -->
+            <div id="error-message" class="error-message"
+                style="display:none; background:#ef4444; color:white; padding:1rem; border-radius:8px; margin-top:1rem; text-align:center;">
+            </div>
+        </header>
+
+        <main class="sections-container">
+            <!-- Mood Trend Line Chart -->
+            <div id="section-trend" class="tab-section">
+                <div class="card card-wide">
+                    <div class="card-header">
+                        <h2>Energy Trend</h2>
+                        <span class="badge">Daily Average</span>
+                    </div>
+                    <div class="chart-container" style="min-height: 350px;">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calendar Visualization -->
+            <div id="section-calendar" class="tab-section" style="display:none;">
+                <div class="card card-wide">
+                    <div class="card-header">
+                        <h2>Energy Calendar</h2>
+                    </div>
+                    <div class="calendar-container" id="calendarContainer">
+                        <!-- Calendar cells generated via JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mood Distribution Pie Chart -->
+            <div id="section-distribution" class="tab-section" style="display:none;">
+                <div class="card" style="max-width:700px; margin:0 auto;">
+                    <div class="card-header">
+                        <h2>Energy Distribution</h2>
+                        <span class="badge badge-purple">All Time</span>
+                    </div>
+                    <div class="chart-container" style="min-height: 350px;">
+                        <canvas id="distributionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal for Notes -->
+    <div id="notesModal" class="modal">
+        <div class="modal-content glass-card">
+            <span class="close-btn" id="closeModal">&times;</span>
+            <h2 id="modalDateTitle">Notes for [Date]</h2>
+            <textarea id="moodNotes" class="glass-input textarea-notes"
+                placeholder="Write your notes here..."></textarea>
+            <button id="saveNotesBtn" class="btn-primary">Save Notes</button>
+            <p id="saveStatus" class="status-msg"></p>
+        </div>
+    </div>
+
+    <!-- Custom JS -->
+    <script src="/static/charts.js"></script>
+    <script>
+        const toggle = document.getElementById('themeToggle');
+        const body = document.body;
+        // Restore saved preference
+        if (localStorage.getItem('theme') === 'light') body.classList.add('light-theme');
+        toggle.addEventListener('click', () => {
+            body.classList.toggle('light-theme');
+            localStorage.setItem('theme', body.classList.contains('light-theme') ? 'light' : 'dark');
+        });
+    </script>
+</body>
+
+</html>
