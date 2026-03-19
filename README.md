@@ -43,7 +43,7 @@ A few things were simplified for the demo and aren't representative of how the f
 
 ## Hardware
 
-- Raspberry Pi (tested on Pi 5)
+- Raspberry Pi (tested on Pi 4 model b)
 - Pi Camera Module
 - SK6812 RGBW NeoPixel LED strip — 60 LEDs, wired to GPIO18
 - 3D-printed translucent lamp shell
